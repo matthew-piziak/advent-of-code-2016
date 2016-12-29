@@ -1,22 +1,27 @@
-use std::convert::TryFrom;
+use std::str::FromStr;
 
-pub fn blocks_away(instructions: &str) -> i16 {
-    let mut x = 0;
-    let mut y = 0;
+type Error = &'static str;
+type Result<T> = ::std::result::Result<T, Error>;
+
+pub fn blocks_away(instructions: &str) -> Result<i16> {
+    let mut x: i16 = 0;
+    let mut y: i16 = 0;
     let mut direction = Direction::North;
-    for instruction in Instruction::try_many_from(instructions).unwrap() {
-        direction.turn(instruction.turn);
+    for instruction in Instruction::try_many_from(instructions) {
+        let instruction = instruction?;
+        direction = direction.turn(instruction.turn);
+        let blocks = instruction.blocks as i16;
         match direction {
-            Direction::North => y += instruction.blocks,
-            Direction::East => x += instruction.blocks,
-            Direction::South => y -= instruction.blocks,
-            Direction::West => x -= instruction.blocks,
+            Direction::North => y += blocks,
+            Direction::East => x += blocks,
+            Direction::South => y -= blocks,
+            Direction::West => x -= blocks,
         }
     }
-    x.abs() + y.abs()
+    Ok(x.abs() + y.abs())
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 enum Direction {
     North,
     East,
@@ -25,70 +30,53 @@ enum Direction {
 }
 
 impl Direction {
-    fn turn(&mut self, turn: Turn) {
-        *self = match *self {
-            Direction::North => {
-                match turn {
-                    Turn::Left => Direction::West,
-                    Turn::Right => Direction::East,
-                }
-            }
-            Direction::East => {
-                match turn {
-                    Turn::Left => Direction::North,
-                    Turn::Right => Direction::South,
-                }
-            }
-            Direction::South => {
-                match turn {
-                    Turn::Left => Direction::East,
-                    Turn::Right => Direction::West,
-                }
-            }
-            Direction::West => {
-                match turn {
-                    Turn::Left => Direction::South,
-                    Turn::Right => Direction::North,
-                }
-            }
+    fn turn(&self, turn: Turn) -> Direction {
+        use self::Direction::*;
+        use self::Turn::*;
+
+        match (*self, turn) {
+            (North, Left) => West,
+            (North, Right) => East,
+            (East, Left) => North,
+            (East, Right) => South,
+            (South, Left) => East,
+            (South, Right) => West,
+            (West, Left) => South,
+            (West, Right) => North,
         }
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 enum Turn {
     Left,
     Right,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 struct Instruction {
     turn: Turn,
-    blocks: i16,
+    blocks: u16,
 }
 
-impl<'a> Instruction {
-    fn try_many_from(s: &'a str) -> Result<Vec<Self>, &'a str> {
-        s.split(", ").map(Self::try_from).collect()
+impl Instruction {
+    fn try_many_from<'a>(s: &'a str) -> impl Iterator<Item = Result<Self>> + 'a {
+        s.split(", ").map(str::parse)
     }
 }
 
-impl<'a> TryFrom<&'a str> for Instruction {
-    type Err = &'a str;
+impl FromStr for Instruction {
+    type Err = Error;
 
-    fn try_from(s: &'a str) -> Result<Self, &'a str> {
+    fn from_str(s: &str) -> Result<Self> {
         let mut chars = s.chars();
         let turn = match chars.next() {
-            Some(turn_char) => {
-                match turn_char {
-                    'L' => Turn::Left,
-                    'R' => Turn::Right,
-                    _ => return Err("Turn character invalid"),
-                }
-            }
+            Some('L') => Turn::Left,
+            Some('R') => Turn::Right,
+            Some(_) => return Err("Turn character invalid"),
             None => return Err("Instruction string is empty"),
         };
-        let blocks = try!(chars.as_str().parse::<i16>().map_err(|_| "Could not parse blocks"));
+        let blocks = try!(chars.as_str().parse().map_err(|_| "Could not parse blocks"));
         Ok(Instruction {
             turn: turn,
             blocks: blocks,
@@ -102,68 +90,74 @@ mod test {
 
     #[test]
     fn test_parse_instruction_success() {
-        let instruction = Instruction::try_from("L1").unwrap();
+        let instruction = "L1".parse::<Instruction>();
         assert_eq!(instruction,
-                   Instruction {
+                   Ok(Instruction {
                        turn: Turn::Left,
                        blocks: 1,
-                   });
-        let instruction = Instruction::try_from("R2").unwrap();
+                   }));
+        let instruction = "R2".parse::<Instruction>();
         assert_eq!(instruction,
-                   Instruction {
+                   Ok(Instruction {
                        turn: Turn::Right,
                        blocks: 2,
-                   });
+                   }));
     }
 
     #[test]
     fn test_parse_instruction_invalid_turn_character() {
-        let instruction = Instruction::try_from("S1");
+        let instruction = "S1".parse::<Instruction>();
         assert_eq!(instruction, Err("Turn character invalid"));
     }
 
     #[test]
     fn test_parse_instruction_empty_string() {
-        let instruction = Instruction::try_from("");
+        let instruction = "".parse::<Instruction>();
         assert_eq!(instruction, Err("Instruction string is empty"));
     }
 
     #[test]
     fn test_parse_instruction_missing_blocks_digit() {
-        let instruction = Instruction::try_from("L");
+        let instruction = "L".parse::<Instruction>();
         assert_eq!(instruction, Err("Could not parse blocks"));
     }
 
     #[test]
     fn test_parse_instruction_invalid_blocks_digit() {
-        let instruction = Instruction::try_from("LL");
+        let instruction = "LL".parse::<Instruction>();
         assert_eq!(instruction, Err("Could not parse blocks"));
     }
 
     #[test]
     fn test_parse_instructions() {
-        let instructions = Instruction::try_many_from("L1, R2").unwrap();
+        let instructions = Instruction::try_many_from("L1, R2").collect::<Result<Vec<_>>>();
         assert_eq!(instructions,
-                   vec![Instruction {
-                            turn: Turn::Left,
-                            blocks: 1,
-                        },
-                        Instruction {
-                            turn: Turn::Right,
-                            blocks: 2,
-                        }]);
+                   Ok(vec![Instruction {
+                               turn: Turn::Left,
+                               blocks: 1,
+                           },
+                           Instruction {
+                               turn: Turn::Right,
+                               blocks: 2,
+                           }]));
     }
 
     // Assert that parsing failure returns the first error
     #[test]
     fn test_parse_instructions_with_error() {
-        let instructions = Instruction::try_many_from("L1, , R2, S2");
+        let instructions = Instruction::try_many_from("L1, , R2, S2").collect::<Result<Vec<_>>>();
         assert_eq!(instructions, Err("Instruction string is empty"));
     }
 
     #[test]
     fn test_blocks_away() {
         let blocks_away = blocks_away("L4, L1, L1");
-        assert_eq!(blocks_away, 4);
+        assert_eq!(blocks_away, Ok(4));
+    }
+
+    #[test]
+    fn test_blocks_away_advent_input() {
+        let day_01_answer = blocks_away(include_str!("day_01_input"));
+        assert_eq!(day_01_answer, Ok(279));
     }
 }
