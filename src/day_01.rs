@@ -37,6 +37,9 @@ impl TryFrom<String> for Instruction {
             }
             None => return Err("Blocks character not found".into()),
         };
-        Ok(Self { turn, blocks })
+        Ok(Self {
+            turn: turn,
+            blocks: blocks,
+        })
     }
 }
