@@ -7,13 +7,12 @@ type Result<T> = ::std::result::Result<T, Error>;
 // 1 2 3
 // 4 5 6
 // 7 8 9
-fn code(instructions: &str) -> Result<String> {
+pub fn code(instructions: &str) -> Result<String> {
     use self::Instruction::*;
 
-    let mut inputs = String::from("");
+    let mut code = String::from("");
     let mut curr_key: Key = 5;
     for instruction in Instruction::try_many_from(instructions) {
-        println!("curr_key: {:?}", curr_key);
         let instruction = instruction?;
         let row = (curr_key - 1) / 3;
         let col = (curr_key - 1) % 3;
@@ -43,11 +42,11 @@ fn code(instructions: &str) -> Result<String> {
                 curr_key = curr_key + 1;
             }
             (End, _, _) => {
-                inputs.push_str(&format!("{}", curr_key));
+                code.push_str(&format!("{}", curr_key));
             }
         }
     }
-    Ok(inputs)
+    Ok(code)
 }
 
 type Key = usize;
@@ -120,6 +119,6 @@ mod test {
     #[test]
     fn test_code_advent_input() {
         let day_02_answer = code(include_str!("day_02_input"));
-        assert_eq!(day_02_answer, Ok("279".into()));
+        assert_eq!(day_02_answer, Ok("69642".into()));
     }
 }
