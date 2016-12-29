@@ -17,29 +17,18 @@ pub fn code(instructions: &str) -> Result<String> {
         let row = (curr_key - 1) / 3;
         let col = (curr_key - 1) % 3;
         match (instruction, row, col) {
-            (Up, 0, _) => {
-                curr_key = curr_key;
-            }
+            (Up, 0, _) | (Down, 2, _) | (Left, _, 0) | (Right, _, 2) => {}
             (Up, _, _) => {
-                curr_key = curr_key - 3;
-            }
-            (Down, 2, _) => {
-                curr_key = curr_key;
+                curr_key -= 3;
             }
             (Down, _, _) => {
-                curr_key = curr_key + 3;
-            }
-            (Left, _, 0) => {
-                curr_key = curr_key;
+                curr_key += 3;
             }
             (Left, _, _) => {
-                curr_key = curr_key - 1;
-            }
-            (Right, _, 2) => {
-                curr_key = curr_key;
+                curr_key -= 1;
             }
             (Right, _, _) => {
-                curr_key = curr_key + 1;
+                curr_key += 1;
             }
             (End, _, _) => {
                 code.push_str(&format!("{}", curr_key));
@@ -76,7 +65,7 @@ impl TryFrom<char> for Instruction {
             'D' => Ok(Instruction::Down),
             'L' => Ok(Instruction::Left),
             '\n' => Ok(Instruction::End),
-            invalid @ _ => Err(format!("Instruction invalid: {}", invalid)),
+            invalid => Err(format!("Instruction invalid: {}", invalid)),
         }
     }
 }

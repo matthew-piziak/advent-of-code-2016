@@ -35,14 +35,10 @@ impl Direction {
         use self::Turn::*;
 
         match (*self, turn) {
-            (North, Left) => West,
-            (North, Right) => East,
-            (East, Left) => North,
-            (East, Right) => South,
-            (South, Left) => East,
-            (South, Right) => West,
-            (West, Left) => South,
-            (West, Right) => North,
+            (North, Left) | (South, Right) => West,
+            (North, Right) | (South, Left) => East,
+            (East, Left) | (West, Right) => North,
+            (East, Right) | (West, Left) => South,
         }
     }
 }
