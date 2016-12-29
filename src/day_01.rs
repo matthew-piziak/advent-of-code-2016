@@ -109,4 +109,11 @@ mod test {
                             blocks: 2,
                         }]);
     }
+
+    // Assert that parsing failure returns the first error
+    #[test]
+    fn test_parse_instructions_with_error() {
+        let instructions = Instruction::try_many_from("L1, , R2, S2");
+        assert_eq!(instructions, Err("Instruction string is empty"));
+    }
 }
