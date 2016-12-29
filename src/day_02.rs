@@ -3,16 +3,61 @@ use std::convert::TryFrom;
 type Error = String;
 type Result<T> = ::std::result::Result<T, Error>;
 
-fn code(instructions: &str) -> &str {
-    ""
+// Keypad structure:
+// 1 2 3
+// 4 5 6
+// 7 8 9
+fn code(instructions: &str) -> Result<String> {
+    use self::Instruction::*;
+
+    let mut inputs = String::from("");
+    let mut curr_key: Key = 5;
+    for instruction in Instruction::try_many_from(instructions) {
+        println!("curr_key: {:?}", curr_key);
+        let instruction = instruction?;
+        let row = (curr_key - 1) / 3;
+        let col = (curr_key - 1) % 3;
+        match (instruction, row, col) {
+            (Up, 0, _) => {
+                curr_key = curr_key;
+            }
+            (Up, _, _) => {
+                curr_key = curr_key - 3;
+            }
+            (Down, 2, _) => {
+                curr_key = curr_key;
+            }
+            (Down, _, _) => {
+                curr_key = curr_key + 3;
+            }
+            (Left, _, 0) => {
+                curr_key = curr_key;
+            }
+            (Left, _, _) => {
+                curr_key = curr_key - 1;
+            }
+            (Right, _, 2) => {
+                curr_key = curr_key;
+            }
+            (Right, _, _) => {
+                curr_key = curr_key + 1;
+            }
+            (End, _, _) => {
+                inputs.push_str(&format!("{}", curr_key));
+            }
+        }
+    }
+    Ok(inputs)
 }
+
+type Key = usize;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 enum Instruction {
     Up,
-    Right,
     Down,
     Left,
+    Right,
     End,
 }
 
@@ -64,5 +109,17 @@ mod test {
     fn test_parse_instructions_invalid() {
         let instructions = Instruction::try_many_from("ULxDy").collect::<Result<Vec<_>>>();
         assert_eq!(instructions, Err("Instruction invalid: x".into()));
+    }
+
+    #[test]
+    fn test_code() {
+        let code = code("ULL\nRRDDD\nLURDL\nUUUUD\n");
+        assert_eq!(code, Ok("1985".into()));
+    }
+
+    #[test]
+    fn test_code_advent_input() {
+        let day_02_answer = code(include_str!("day_02_input"));
+        assert_eq!(day_02_answer, Ok("279".into()));
     }
 }

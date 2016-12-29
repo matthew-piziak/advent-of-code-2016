@@ -30,7 +30,7 @@ enum Direction {
 }
 
 impl Direction {
-    fn turn(&self, turn: Turn) -> Direction {
+    fn turn(&self, turn: Turn) -> Self {
         use self::Direction::*;
         use self::Turn::*;
 
