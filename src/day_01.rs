@@ -1,6 +1,6 @@
 use std::convert::TryFrom;
 
-fn blocks_away(instructions: &str) -> i16 {
+pub fn blocks_away(instructions: &str) -> i16 {
     let mut x = 0;
     let mut y = 0;
     let mut direction = Direction::North;
@@ -12,9 +12,6 @@ fn blocks_away(instructions: &str) -> i16 {
             Direction::South => y -= instruction.blocks,
             Direction::West => x -= instruction.blocks,
         }
-        println!("direction: {:?}", direction);
-        println!("x: {:?}", x);
-        println!("y: {:?}", y);
     }
     x.abs() + y.abs()
 }
@@ -80,13 +77,12 @@ impl<'a> TryFrom<&'a str> for Instruction {
     type Err = &'a str;
 
     fn try_from(s: &'a str) -> Result<Self, &'a str> {
-        use self::Turn::*;
         let mut chars = s.chars();
         let turn = match chars.next() {
             Some(turn_char) => {
                 match turn_char {
-                    'L' => Left,
-                    'R' => Right,
+                    'L' => Turn::Left,
+                    'R' => Turn::Right,
                     _ => return Err("Turn character invalid"),
                 }
             }
@@ -169,22 +165,5 @@ mod test {
     fn test_blocks_away() {
         let blocks_away = blocks_away("L4, L1, L1");
         assert_eq!(blocks_away, 4);
-    }
-
-    #[test]
-    fn test_blocks_away_advent_input() {
-        let blocks_away =
-            blocks_away("L4, L1, R4, R1, R1, L3, R5, L5, L2, L3, R2, R1, L4, R5, R4, L2, R1, R3, \
-                         L5, R1, L3, L2, R5, L4, L5, R1, R2, L1, R5, L3, R2, R2, L1, R5, R2, L1, \
-                         L1, R2, L1, R1, L2, L2, R4, R3, R2, L3, L188, L3, R2, R54, R1, R1, L2, \
-                         L4, L3, L2, R3, L1, L1, R3, R5, L1, R5, L1, L1, R2, R4, R4, L5, L4, L1, \
-                         R2, R4, R5, L2, L3, R5, L5, R1, R5, L2, R4, L2, L1, R4, R3, R4, L4, R3, \
-                         L4, R78, R2, L3, R188, R2, R3, L2, R2, R3, R1, R5, R1, L1, L1, R4, R2, \
-                         R1, R5, L1, R4, L4, R2, R5, L2, L5, R4, L3, L2, R1, R1, L5, L4, R1, L5, \
-                         L1, L5, L1, L4, L3, L5, R4, R5, R2, L5, R5, R5, R4, R2, L1, L2, R3, R5, \
-                         R5, R5, L2, L1, R4, R3, R1, L4, L2, L3, R2, L3, L5, L2, L2, L1, L2, R5, \
-                         L2, L2, L3, L1, R1, L4, R2, L4, R3, R5, R3, R4, R1, R5, L3, L5, L5, L3, \
-                         L2, L1, R3, L4, R3, R2, L1, R3, R1, L2, R4, L3, L3, L3, L1, L2");
-        assert_eq!(blocks_away, 279);
     }
 }
