@@ -1,24 +1,43 @@
 use std::str::FromStr;
+use std::collections::HashSet;
 
 type Error = &'static str;
 type Result<T> = ::std::result::Result<T, Error>;
 
-pub fn blocks_away(instructions: &str) -> Result<i16> {
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum Part {
+    One,
+    Two,
+}
+
+pub fn blocks_away(instructions: &str, part: Part) -> Result<i16> {
     let mut x: i16 = 0;
     let mut y: i16 = 0;
     let mut direction = Direction::North;
+    let mut seen = HashSet::new();
     for instruction in Instruction::try_many_from(instructions) {
         let instruction = instruction?;
         direction = direction.turn(instruction.turn);
         let blocks = instruction.blocks as i16;
-        match direction {
-            Direction::North => y += blocks,
-            Direction::East => x += blocks,
-            Direction::South => y -= blocks,
-            Direction::West => x -= blocks,
+        for _ in 0..blocks {
+            if part == Part::Two {
+                if seen.contains(&(x, y)) {
+                    return Ok(x.abs() + y.abs());
+                }
+                seen.insert((x, y));
+            }
+            match direction {
+                Direction::North => y += 1,
+                Direction::East => x += 1,
+                Direction::South => y -= 1,
+                Direction::West => x -= 1,
+            }
         }
     }
-    Ok(x.abs() + y.abs())
+    match part {
+        Part::One => Ok(x.abs() + y.abs()),
+        Part::Two => Err("Never visted same location twice"),
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -56,6 +75,7 @@ struct Instruction {
 }
 
 impl Instruction {
+    #[cfg_attr(feature = "cargo-clippy", allow(needless_lifetimes))]
     fn try_many_from<'a>(s: &'a str) -> impl Iterator<Item = Result<Self>> + 'a {
         s.split(", ").map(str::parse)
     }
@@ -146,14 +166,26 @@ mod test {
     }
 
     #[test]
-    fn test_blocks_away() {
-        let blocks_away = blocks_away("L4, L1, L1");
+    fn test_blocks_away_part_one() {
+        let blocks_away = blocks_away("L4, L1, L1", Part::One);
         assert_eq!(blocks_away, Ok(4));
     }
 
     #[test]
-    fn test_blocks_away_advent_input() {
-        let day_01_answer = blocks_away(include_str!("day_01_input"));
+    fn test_blocks_away_part_one_advent_input() {
+        let day_01_answer = blocks_away(include_str!("day_01_input"), Part::One);
         assert_eq!(day_01_answer, Ok(279));
+    }
+
+    #[test]
+    fn test_blocks_away_part_two() {
+        let blocks_away = blocks_away("R8, R4, R4, R8", Part::Two);
+        assert_eq!(blocks_away, Ok(4));
+    }
+
+    #[test]
+    fn test_blocks_away_part_two_advent_input() {
+        let day_01_answer = blocks_away(include_str!("day_01_input"), Part::Two);
+        assert_eq!(day_01_answer, Ok(163));
     }
 }

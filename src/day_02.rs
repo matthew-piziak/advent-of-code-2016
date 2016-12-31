@@ -1,4 +1,5 @@
 use std::convert::TryFrom;
+use std::fmt::Write;
 
 type Error = String;
 type Result<T> = ::std::result::Result<T, Error>;
@@ -10,7 +11,7 @@ type Result<T> = ::std::result::Result<T, Error>;
 pub fn code(instructions: &str) -> Result<String> {
     use self::Instruction::*;
 
-    let mut code = String::from("");
+    let mut code = String::new();
     let mut curr_key: Key = 5;
     for instruction in Instruction::try_many_from(instructions) {
         let instruction = instruction?;
@@ -31,7 +32,7 @@ pub fn code(instructions: &str) -> Result<String> {
                 curr_key += 1;
             }
             (End, _, _) => {
-                code.push_str(&format!("{}", curr_key));
+                write!(&mut code, "{}", curr_key).expect("Unable to append to string");
             }
         }
     }
@@ -50,6 +51,7 @@ enum Instruction {
 }
 
 impl Instruction {
+    #[cfg_attr(feature = "cargo-clippy", allow(needless_lifetimes))]
     fn try_many_from<'a>(s: &'a str) -> impl Iterator<Item = Result<Self>> + 'a {
         s.chars().map(Self::try_from)
     }
