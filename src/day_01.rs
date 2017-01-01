@@ -4,27 +4,21 @@ use std::collections::HashSet;
 type Error = &'static str;
 type Result<T> = ::std::result::Result<T, Error>;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum Part {
-    One,
-    Two,
-}
-
-pub fn blocks_away(instructions: &str, part: Part) -> Result<i16> {
+pub fn blocks_away(instructions: &str, terminate_on_revisited_location: bool) -> Result<i16> {
     let mut x: i16 = 0;
     let mut y: i16 = 0;
     let mut direction = Direction::North;
-    let mut seen = HashSet::new();
+    let mut visited = HashSet::new();
     for instruction in Instruction::try_many_from(instructions) {
         let instruction = instruction?;
         direction = direction.turn(instruction.turn);
         let blocks = instruction.blocks as i16;
         for _ in 0..blocks {
-            if part == Part::Two {
-                if seen.contains(&(x, y)) {
+            if terminate_on_revisited_location {
+                if visited.contains(&(x, y)) {
                     return Ok(x.abs() + y.abs());
                 }
-                seen.insert((x, y));
+                visited.insert((x, y));
             }
             match direction {
                 Direction::North => y += 1,
@@ -34,9 +28,10 @@ pub fn blocks_away(instructions: &str, part: Part) -> Result<i16> {
             }
         }
     }
-    match part {
-        Part::One => Ok(x.abs() + y.abs()),
-        Part::Two => Err("Never visted same location twice"),
+    if terminate_on_revisited_location {
+        Err("Never visted same location twice")
+    } else {
+        Ok(x.abs() + y.abs())
     }
 }
 
@@ -167,25 +162,25 @@ mod test {
 
     #[test]
     fn test_blocks_away_part_one() {
-        let blocks_away = blocks_away("L4, L1, L1", Part::One);
+        let blocks_away = blocks_away("L4, L1, L1", false);
         assert_eq!(blocks_away, Ok(4));
     }
 
     #[test]
     fn test_blocks_away_part_one_advent_input() {
-        let day_01_answer = blocks_away(include_str!("day_01_input"), Part::One);
+        let day_01_answer = blocks_away(include_str!("day_01_input"), false);
         assert_eq!(day_01_answer, Ok(279));
     }
 
     #[test]
     fn test_blocks_away_part_two() {
-        let blocks_away = blocks_away("R8, R4, R4, R8", Part::Two);
+        let blocks_away = blocks_away("R8, R4, R4, R8", true);
         assert_eq!(blocks_away, Ok(4));
     }
 
     #[test]
     fn test_blocks_away_part_two_advent_input() {
-        let day_01_answer = blocks_away(include_str!("day_01_input"), Part::Two);
+        let day_01_answer = blocks_away(include_str!("day_01_input"), true);
         assert_eq!(day_01_answer, Ok(163));
     }
 }
